@@ -17,11 +17,18 @@ var addonListCommandSpec = {
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
+      let map = {};
+      addons.forEach(function(e) { map[e.name] = e; });
       let reply = 'The following Add-ons were found:';
       reply += '<ol>';
-      let names = addons.map(function(e) { return e.name; }).sort();
+      let names = Object.keys(map).sort();
       for (let i of names) {
-        reply += '<li><![CDATA[' + i + ']]></li>';
+        let a = map[i];
+        if (a.userDisabled) {
+          reply += '<li style="text-decoration: line-through;"><![CDATA[' + i + ']]></li>';
+        } else {
+          reply += '<li><![CDATA[' + i + ']]></li>';
+        }
       }
       reply += '</ol>';
       promise.resolve(reply);
