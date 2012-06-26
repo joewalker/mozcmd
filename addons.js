@@ -16,13 +16,12 @@ var addonListCommandSpec = {
   description: 'List the available Add-ons',
   exec: function(args, context) {
     let promise = context.createPromise();
-    AddonManager.getAllAddons(function (addons) {
+    AddonManager.getAddonsByTypes(["extension"], function (addons) {
       let reply = 'The following Add-ons were found:';
       reply += '<ol>';
-      let names = addons.filter(function(e) { return e.type == 'extension'; })
-                        .map(function(e) { return e.name; }).sort();
+      let names = addons.map(function(e) { return e.name; }).sort();
       for (let i of names) {
-        reply += '<li><img<![CDATA[' + i + ']]></li>';
+        reply += '<li><![CDATA[' + i + ']]></li>';
       }
       reply += '</ol>';
       promise.resolve(reply);
@@ -44,19 +43,6 @@ var addonEnableCommandSpec = {
     }
   ],
   exec: function(args, context) {
-    let promise = context.createPromise();
-    AddonManager.getAllAddons(function (addons) {
-      let reply = 'The following Add-ons were found:';
-      reply += '<ol>';
-      let names = addons.filter(function(e) { return e.type == 'extension'; })
-                        .map(function(e) { return e.name; }).sort();
-      for (let i of names) {
-        reply += '<li><img<![CDATA[' + i + ']]></li>';
-      }
-      reply += '</ol>';
-      promise.resolve(reply);
-    });
-    return promise;
   }
 }
 
