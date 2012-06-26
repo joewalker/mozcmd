@@ -1,0 +1,181 @@
+[
+  {
+    name: 'rm',
+    description: 'Remove elements and attributes from the page',
+  },
+  {
+    name: 'rm element',
+    description: 'Remove elements',
+    params: [
+      {
+        name: 'search',
+        type: 'string',
+        description: 'CSS selector or XPath that tells which elements you want to remove',
+      },
+      {
+        name: 'root',
+        type: 'string',
+        description: 'CSS selector or XPath pointing to the root element from where the search starts',
+        defaultValue: null,
+      },
+      {
+        name: 'xpath',
+        type: 'boolean',
+        description: 'Tells that the search string is an XPath string, not a CSS selector',
+      },
+      {
+        name: 'stripOnly',
+        type: 'boolean',
+        description: 'Tells that you want to remove the element, but not the content',
+      },
+      {
+        name: 'ifEmptyOnly',
+        type: 'boolean',
+        description: 'Tells that you want to remove only the empty elements',
+      },
+    ],
+    exec: function(args, context) {
+      var document = context.environment.contentDocument;
+      var XPathResult = document.defaultView.XPathResult;
+
+      var root = document;
+      if (args.root) {
+        if (args.xpath) {
+          var result = document.evaluate(args.root, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+          root = result.singleNodeValue;
+        } else {
+          root = document.querySelector(args.root);
+        }
+      }
+      if (!root) {
+        return "Root not found!";
+      }
+
+      var elements = [];
+
+      if (args.xpath) {
+        var result = document.evaluate(args.search, root, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (var i = 0; i < result.snapshotLength; i++) {
+          elements.push(result.snapshotItem(i));
+        }
+      } else {
+        var result = root.querySelectorAll(args.search);
+        elements = Array.prototype.slice.call(result);
+      }
+
+      var removed = 0;
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        var parentNode = element.parentNode;
+        if (!parentNode || !element.removeChild) {
+          continue;
+        }
+        if (args.stripOnly) {
+          for (var y = 0; y < element.childNodes.length; y++) {
+            parentNode.insertBefore(element.childNodes[y], element);
+          }
+        }
+        if (!args.ifEmptyOnly || element.childNodes.length == 0) {
+          element.parentNode.removeChild(element);
+          removed++;
+        }
+      }
+
+      return "Matched elements: " + elements.length + ". Removed: " + removed + ".";
+    }
+  },
+  {
+    name: 'rm attribute',
+    description: 'Remove attributes from elements',
+    params: [
+      {
+        name: 'searchAttributes',
+        type: 'string',
+        description: 'String (or regex) that matches the attribute names you want to remove',
+      },
+      {
+        name: 'searchElements',
+        type: 'string',
+        description: 'CSS selector or XPath that tells which elements you want to search for',
+      },
+      {
+        name: 'root',
+        type: 'string',
+        description: 'CSS selector or XPath pointing to the root element from where the search starts',
+        defaultValue: null,
+      },
+      {
+        name: 'xpath',
+        type: 'boolean',
+        description: 'Tells that the searchElements and root strings are XPath strings, not CSS selectors',
+      },
+      {
+        name: 'regex',
+        type: 'boolean',
+        description: 'Tells that the searchAttributes string is a regular expression',
+      },
+      {
+        name: 'ignoreCase',
+        type: 'boolean',
+        description: 'Tells that the search for attributes needs to ignore the string case',
+      },
+    ],
+    exec: function(args, context) {
+      var document = context.environment.contentDocument;
+      var XPathResult = document.defaultView.XPathResult;
+
+      function escapeRegex(str) {
+        return str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      }
+
+      var root = document;
+      if (args.root) {
+        if (args.xpath) {
+          var result = document.evaluate(args.root, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+          root = result.singleNodeValue;
+        } else {
+          root = document.querySelector(args.root);
+        }
+      }
+      if (!root) {
+        return "Root not found!";
+      }
+
+      var regexOptions = args.ignoreCase ? 'ig' : 'g';
+      var attributeRegex = args.regex ? args.searchAttributes : escapeRegex(args.searchAttributes);
+      attributeRegex = new RegExp(attributeRegex, regexOptions);
+
+      var elements = [];
+
+      if (args.xpath) {
+        var result = document.evaluate(args.searchElements, root, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (var i = 0; i < result.snapshotLength; i++) {
+          elements.push(result.snapshotItem(i));
+        }
+      } else {
+        var result = root.querySelectorAll(args.searchElements);
+        elements = Array.prototype.slice.call(result);
+      }
+
+      var removed = 0;
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        if (!element.attributes) {
+          continue;
+        }
+
+        var attrs = Array.prototype.slice.call(element.attributes);
+        for (var y = 0; y < attrs.length; y++) {
+          var attr = attrs[y];
+          if (attributeRegex.test(attr.name)) {
+            element.removeAttributeNode(attr);
+            removed++;
+          }
+        }
+      }
+
+      return "Matched elements: " + elements.length + ". Removed attributes: " + removed + ".";
+    }
+  },
+]
+

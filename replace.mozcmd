@@ -1,0 +1,147 @@
+[
+  {
+    name: 'replace',
+    description: 'Search and replace for the DOM',
+  },
+  {
+    name: 'replace text',
+    description: 'Search and replace within text nodes',
+    params: [
+      {
+        name: 'search',
+        type: 'string',
+        description: 'What to search for',
+      },
+      {
+        name: 'replace',
+        type: 'string',
+        description: 'What you want to put instead of the given search string',
+      },
+      {
+        name: 'regex',
+        type: 'boolean',
+        description: 'Tells if the search string is a regex',
+      },
+      {
+        name: 'ignoreCase',
+        type: 'boolean',
+        description: 'Tells if you want to ignore the case of the search string',
+      },
+      {
+        name: 'root',
+        type: 'node',
+        description: 'A CSS selector pointing to the root element from where the search starts',
+        defaultValue: null,
+      },
+      {
+        name: 'selector',
+        type: 'string',
+        description: 'CSS selector that tells which elements you want to include in the search and replace operation',
+        defaultValue: '*:not(script):not(style):not(embed):not(object):not(frame):not(iframe):not(frameset)',
+      },
+    ],
+    exec: function(args, context) {
+      var document = context.environment.contentDocument;
+
+      function escapeRegex(str) {
+        return str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      }
+
+      var search = args.regex ? args.search : escapeRegex(args.search);
+      var regexOptions = args.ignoreCase ? 'ig' : 'g';
+      search = new RegExp(search, regexOptions);
+
+      var root = args.root || document;
+      var elements = root.querySelectorAll(args.selector);
+      elements = Array.prototype.slice.call(elements);
+      elements.push(root);
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        for (var y = 0; y < element.childNodes.length; y++) {
+          var node = element.childNodes[y];
+          if (node.nodeType == node.TEXT_NODE) {
+            node.textContent = node.textContent.replace(search, args.replace);
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'replace attribute',
+    description: 'Search and replace within element attributes',
+    params: [
+      {
+        name: 'search',
+        type: 'string',
+        description: 'What to search for',
+      },
+      {
+        name: 'replace',
+        type: 'string',
+        description: 'What you want to put instead of the given search string',
+      },
+      {
+        name: 'regex',
+        type: 'boolean',
+        description: 'Tells if the search string is a regex',
+      },
+      {
+        name: 'ignoreCase',
+        type: 'boolean',
+        description: 'Tells if you want to ignore the case of the search string',
+      },
+      {
+        name: 'attributes',
+        type: 'string',
+        description: 'Limit the search to specific attribute names that match the string (or regex) you give here',
+        defaultValue: null,
+      },
+      {
+        name: 'root',
+        type: 'node',
+        description: 'A CSS selector pointing to the root element from where the search starts',
+        defaultValue: null,
+      },
+      {
+        name: 'selector',
+        type: 'string',
+        description: 'CSS selector that tells which elements you want to include in the search and replace operation',
+        defaultValue: '*:not(script):not(style):not(embed):not(object):not(frame):not(iframe):not(frameset)',
+      },
+    ],
+    exec: function(args, context) {
+      var document = context.environment.contentDocument;
+
+      function escapeRegex(str) {
+        return str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      }
+
+      var regexOptions = args.ignoreCase ? 'ig' : 'g';
+      var attributeRegex = null;
+      if (args.attributes) {
+        attributeRegex = args.regex ? args.attributes : escapeRegex(args.attributes);
+        attributeRegex = new RegExp(attributeRegex, regexOptions);
+      }
+
+      var search = args.regex ? args.search : escapeRegex(args.search);
+      search = new RegExp(search, regexOptions);
+
+      var root = args.root || document;
+      var elements = root.querySelectorAll(args.selector);
+      elements = Array.prototype.slice.call(elements);
+      elements.push(root);
+      for (var i = 0; i < elements.length; i++) {
+        var element = elements[i];
+        if (!element.attributes) {
+          continue;
+        }
+        for (var y = 0; y < element.attributes.length; y++) {
+          var attr = element.attributes[y];
+          if (!attributeRegex || attributeRegex.test(attr.name)) {
+            attr.value = attr.value.replace(search, args.replace);
+          }
+        }
+      }
+    }
+  }
+]
