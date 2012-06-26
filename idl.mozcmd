@@ -1,0 +1,16 @@
+[{
+  name: "idl",
+  description: "Show the IDL file for a specified XPCOM interface",
+  params: [
+    {
+      name: "interfaceName",
+      type: "string",
+      description: "Full or partial name of interface",
+    }
+  ],
+  exec: function(args, context) {
+    let gBrowser = context.environment.chromeDocument.defaultView.gBrowser;
+    let url = "https://mxr.mozilla.org/mozilla-central/find?text=&kind=text&string=/[^/]*" + args.interfaceName + "[^/]*\\.idl";
+    gBrowser.selectedTab = gBrowser.addTab(url);
+  }
+}]
