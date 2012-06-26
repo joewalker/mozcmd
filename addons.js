@@ -3,8 +3,6 @@
 
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modules/AddonRepository.jsm");
-//Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 
 var addonCommandSpec = {
   name: 'addon',
