@@ -1,0 +1,43 @@
+[{
+  name: "memory",
+  description: "Get a memory report for the current page",
+  exec: function(args, context) {
+    Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
+
+    let output = '<h1>Memory report:</h1><br/><table>';
+    let total = 0;
+
+    let url = context.environment.contentDocument.location.href;
+    url = url.replace(/\//g, "\\");
+    let pathPrefix = "explicit/js/compartment(" + url + ")";
+
+    let memMgr = Components.classes["@mozilla.org/memory-reporter-manager;1"]
+                           .getService(Components.interfaces.nsIMemoryReporterManager);
+    let reporters = memMgr.enumerateMultiReporters();
+    while (reporters.hasMoreElements()) {
+      let reporter = reporters.getNext().QueryInterface(Components.interfaces.nsIMemoryMultiReporter);
+      reporter.collectReports(function(process, path, kind, units, amount, description, closure) {
+        if (path.indexOf(pathPrefix) != 0)
+          return;
+        if (units != Components.interfaces.nsIMemoryReporter.UNITS_BYTES)
+          return;
+
+        total += amount;
+
+        let pathDetail = path.slice(pathPrefix.length + 1);
+        let [formattedSize, formattedUnit] = DownloadUtils.convertByteUnits(amount);
+
+        output += '<tr><td><abbr title="' + description + '">' + pathDetail + '</abbr></td><td>' + formattedSize + ' ' + formattedUnit + '</td></tr>';
+      }, reporter);
+    }
+
+    if (total == 0)
+      return "Page not found in memory?!";
+
+    let [formattedSize, formattedUnit] = DownloadUtils.convertByteUnits(total);
+    output += '<tr><td><b>Total</b></td><td><b>' + formattedSize + ' ' + formattedUnit + '</b></td></tr>';
+
+    output += "</table>"
+    return output;
+  }
+}]
