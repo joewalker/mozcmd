@@ -3,17 +3,25 @@
 
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager", "resource://gre/modules/AddonManager.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modules/AddonRepository.jsm");
+//Components.utils.import("resource://gre/modules/AddonRepository.jsm");
 
 var addonCommandSpec = {
   name: 'addon',
-  description: 'Manipulate Add-ons'
+  description: {
+    "root": "Manipulate Add-ons",
+    "nl-nl": "Beheer add-ons"
+  }
 }
 
 gcli.addCommand(addonCommandSpec);
 
 var addonListCommandSpec = {
   name: 'addon list',
-  description: 'List the available Add-ons',
+  description: {
+    "root": "List the installed Add-ons",
+    "nl-nl": "Toon een lijst van geinstalleerde add-ons"
+  },
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
@@ -39,16 +47,22 @@ var addonListCommandSpec = {
 
 gcli.addCommand(addonListCommandSpec);
 
+var nameParameter = {
+  name: 'name',
+  type: 'string',
+  description: {
+    "root": "The name of the Add-on",
+    "nl-nl": "De naam van de add-on"
+  }
+}
+
 var addonEnableCommandSpec = {
   name: 'addon enable',
-  description: 'Enable the specified Add-on',
-  params: [
-    {
-      name: 'name',
-      type: 'string',
-      description: 'The name of the Add-on',
-    }
-  ],
+  description: {
+    "root": "Enable the specified Add-on",
+    "nl-nl": "Schakel de gespecificeerde add-on in"
+  },
+  params: [nameParameter],
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
@@ -75,14 +89,11 @@ gcli.addCommand(addonEnableCommandSpec);
 
 var addonDisableCommandSpec = {
   name: 'addon disable',
-  description: 'Disable the specified Add-on',
-  params: [
-    {
-      name: 'name',
-      type: 'string',
-      description: 'The name of the Add-on',
-    }
-  ],
+  description: {
+    "root": "Disable the specified Add-on",
+    "nl-nl": "Schakel de gespecificeerde add-on uit"
+  },
+  params: [nameParameter],
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
