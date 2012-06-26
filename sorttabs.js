@@ -4,6 +4,8 @@
 * @param number url_part
 * a matching string to match the url of tabs.
 * if this value is provided, the tabs not matching the criteria would not be shifted.
+* @param boolean reverse
+* true for reversing the direction of sort
 */
 
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
