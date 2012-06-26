@@ -47,6 +47,8 @@ gcli.addCommand({
   }
 });
 
+/* XXX TBD
+
     {
       name: "url",
       type: "string",
@@ -72,3 +74,5 @@ gcli.addCommand({
     chromeWin.Scratchpad.openScratchpad();
   }
 });
+
+*/
