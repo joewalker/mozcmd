@@ -1,11 +1,12 @@
-/*
- * This is a JavaScript Scratchpad.
+/**
+ * Restart command
  *
- * Enter some JavaScript, then Right Click or choose from the Execute Menu:
- * 1. Run to evaluate the selected text,
- * 2. Inspect to bring up an Object Inspector on the result, or,
- * 3. Display to insert the result in a comment after the selection.
+ * @param number delay
+ *        delay in seconds for the restart
+ * @param boolean disableFastload
+ *        disabled loading from cache upon restart.
  */
+
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
 gcli.addCommand({
   name: "restart",
@@ -27,12 +28,13 @@ gcli.addCommand({
   returnType: "html",
   exec: function Restart(args, context) {
     let {classes: Cc, interfaces: Ci} = Components;
+    let HTML = "http://www.w3.org/1999/xhtml";
     let browserDoc = context.environment.chromeDocument;
     let canceled = Cc["@mozilla.org/supports-PRBool;1"]
       .createInstance(Ci.nsISupportsPRBool);
     Services.obs.notifyObservers(canceled, "quit-application-requested", "restart");
     if (canceled.data) {
-      let div = browserDoc.createElement("div");
+      let div = browserDoc.createElementNS(HTML, "div");
       div.innerHTML = "Restart request cancelled by user.";
       return div;
     }
@@ -58,7 +60,7 @@ gcli.addCommand({
           browserDoc.defaultView.setTimeout(countdownTimer, 1000);
         }        
       }
-      let div = browserDoc.createElement("div");
+      let div = browserDoc.createElementNS(HTML, "div");
       div.innerHTML = "Restarting in " + delay + " seconds.";
       browserDoc.defaultView.setTimeout(countdownTimer, 1000);
       browserDoc.defaultView.setTimeout(restart, delay*1000);
@@ -66,7 +68,7 @@ gcli.addCommand({
     }
     else {
       restart();
-      let div = browserDoc.createElement("div");
+      let div = browserDoc.createElementNS(HTML, "div");
       div.innerHTML = "Restarting...";
       return div;
     }
