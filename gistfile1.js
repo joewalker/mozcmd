@@ -1,17 +1,8 @@
-/*
- * This is a JavaScript Scratchpad.
- *
- * Enter some JavaScript, then Right Click or choose from the Execute Menu:
- * 1. Run to evaluate the selected text,
- * 2. Inspect to bring up an Object Inspector on the result, or,
- * 3. Display to insert the result in a comment after the selection.
- */
-
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
 
 gcli.addCommand({
   name: 'find',
-  description: 'Find text',
+  description: 'Find text within the page',
   params: [
     {
       name: 'search',
@@ -19,9 +10,14 @@ gcli.addCommand({
       description: 'What to look for',
     }
   ],
-  exec: function(args, context) {    
+  exec: function(args, context) {
     let browser = context.environment.chromeDocument.defaultView.gBrowser;
-    browser.fastFind.find(args.search, false);
+    if (typeof browser.__cliFastFind == 'undefined') {
+      browser.__cliFastFind = Components.classes["@mozilla.org/typeaheadfind;1"]
+                               .createInstance(Components.interfaces.nsITypeAheadFind);
+      browser.__cliFastFind.init(browser.docShell);
+    }
+    browser.__cliFastFind.find(args.search, false);
   }
 });
 
@@ -30,7 +26,9 @@ gcli.addCommand({
   description: 'Find next occurrence of previously searched for text',
   exec: function(args, context) {
     let browser = context.environment.chromeDocument.defaultView.gBrowser;
-    browser.fastFind.findAgain(false, false);
+    if (typeof browser.__cliFastFind == 'undefined')
+      return;
+    browser.__cliFastFind.findAgain(false, false);
   }
 });
 
@@ -39,6 +37,8 @@ gcli.addCommand({
   description: 'Find previous occurrence of previously searched for text',
   exec: function(args, context) {
     let browser = context.environment.chromeDocument.defaultView.gBrowser;
-    browser.fastFind.findAgain(true, false);
+    if (typeof browser.__cliFastFind == 'undefined')
+      return;
+    browser.__cliFastFind.findAgain(true, false);
   }
 });
