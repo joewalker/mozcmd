@@ -1,5 +1,5 @@
 /**
-* Sor Tabs command
+* Sort Tabs command
 *
 * @param number url_part
 *        a matching string to match the url of tabs.
