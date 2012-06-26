@@ -43,6 +43,21 @@ var addonEnableCommandSpec = {
     }
   ],
   exec: function(args, context) {
+    let promise = context.createPromise();
+    AddonManager.getAddonsByTypes(["extension"], function (addons) {
+      let addon;
+      for (let i of addons) {
+        if (i.name == args.name) {
+          addon = i;
+          break;
+        }
+      }
+      if (addon) {
+        addon.userDisabled = false;
+      }
+      promise.resolve(args.name + ' was enabled');
+    });
+    return promise;
   }
 }
 
