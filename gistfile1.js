@@ -11,23 +11,10 @@ gcli.addCommand(
         type: 'string',
         description: 'The format of the date',
         defaultValue: '%Y-%m-%d %H:%M:%S'
-      },
-      {
-        name: 'date',
-        type: 'string',
-        description: 'Format this time',
-        defaultValue: ''
       }
     ],
     exec: function(args, context) {
-      var date;
-
-      if (args.date)
-        date = new Date(args.date);
-      else
-        date = new Date();
-
-      return date.toLocaleFormat(args.format);
+      return new Date().toLocaleFormat(args.format);
     }
   }
 );
