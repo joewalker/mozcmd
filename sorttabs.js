@@ -1,5 +1,5 @@
 /**
-* Restart command
+* Sor Tabs command
 *
 * @param number url_part
 *        a matching string to match the url of tabs.
