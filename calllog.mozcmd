@@ -88,7 +88,7 @@
   exec: function(args, context) {
     let chromeWin = context.environment.chromeDocument.defaultView;
     if (!Array.isArray(chromeWin.__jsmDebuggers) || chromeWin.__jsmDebuggers.length == 0)
-      return "No JSMs have call logging enabled";
+      return "No call logging is currently active";
     let numDebuggers = chromeWin.__jsmDebuggers.length;
     for (let dbg of chromeWin.__jsmDebuggers)
       dbg.onEnterFrame = undefined;
