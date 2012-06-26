@@ -6,21 +6,31 @@
   description: "Start logging function calls to the console",
   params: [
     {
-      name: "uri",
+      name: "source",
       type: "string",
-      description: "URI of JSM to start logging function calls",
+      description: "Variable name in content window to get global object, or URI of JSM",
     }
   ],
   exec: function(args, context) {
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    let contentWin = context.environment.contentDocument.defaultView;
     let globalObj;
-    try {
-      globalObj = Components.utils.import(args.uri);
-    }
-    catch (e) {
-      return "Invalid JSM!";
+    if (args.source.indexOf("resource:") == 0) {
+      try {
+        globalObj = Components.utils.import(args.source);
+      }
+      catch (e) {
+        return "Invalid JSM!";
+      }
+    } else {
+      if (args.source in contentWin) {
+        globalObj = Components.utils.getGlobalForObject(contentWin[args.source]);
+      } else {
+        return "Object name not found in content window";
+      }
     }
 
-    let chromeWin = context.environment.chromeDocument.defaultView;
+
     if (typeof chromeWin.Debugger == "undefined") {
       let JSDebug = {};
       Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
@@ -70,7 +80,7 @@
         dbg.onEnterFrame = onEnterFrame;
       }
     }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
-    return "Call logging started for " + args.uri;
+    return "Call logging started for " + args.source;
   }
 }, {
   name: "calllog stop",
