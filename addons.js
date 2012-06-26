@@ -45,7 +45,7 @@ var addonEnableCommandSpec = {
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
-      let addon;
+      let addon, result;
       for (let i of addons) {
         if (i.name == args.name) {
           addon = i;
@@ -54,11 +54,48 @@ var addonEnableCommandSpec = {
       }
       if (addon) {
         addon.userDisabled = false;
+        result = args.name + ' was enabled';
+      } else {
+        result = args.name + ' was not found';
       }
-      promise.resolve(args.name + ' was enabled');
+      promise.resolve(result);
     });
     return promise;
   }
 }
 
 gcli.addCommand(addonEnableCommandSpec);
+
+var addonDisableCommandSpec = {
+  name: 'addon disable',
+  description: 'Disable the specified Add-on',
+  params: [
+    {
+      name: 'name',
+      type: 'string',
+      description: 'The name of the Add-on',
+    }
+  ],
+  exec: function(args, context) {
+    let promise = context.createPromise();
+    AddonManager.getAddonsByTypes(["extension"], function (addons) {
+      let addon, result;
+      for (let i of addons) {
+        if (i.name == args.name) {
+          addon = i;
+          break;
+        }
+      }
+      if (addon) {
+        addon.userDisabled = true;
+        result = args.name + ' was disabled';
+      } else {
+        result = args.name + ' was not found';
+      }
+      promise.resolve(result);
+    });
+    return promise;
+  }
+}
+
+gcli.addCommand(addonDisableCommandSpec);
