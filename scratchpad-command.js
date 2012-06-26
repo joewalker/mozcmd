@@ -6,7 +6,19 @@
 Cu.import("resource:///modules/devtools/gcli.jsm");
 gcli.addCommand({
   name: "scratchpad",
-  description: "Open a Scratchpad",
+  description: "Commands to open a Scratchpad"
+});
+
+gcli.addCommand({
+  name: "scratchpad new",
+  description: "Open a new (empty) Scratchpad",
+  exec: function(args, context) {
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    chromeWin.Scratchpad.openScratchpad();
+  }
+});
+
+
   params: [
     {
       name: "file",
@@ -34,6 +46,7 @@ gcli.addCommand({
     let chromeWin = context.environment.chromeDocument.defaultView;
     let console = context.environment.contentDocument.defaultView.console;
     console.log("args: " + args.names.join(', '));
+
     chromeWin.Scratchpad.openScratchpad();
   }
 });
