@@ -18,7 +18,7 @@ gcli.addCommand({
       type: "string",
       defaultValue: "",
       description: "Sorts tabs that contain this url part."
-    }
+    },
     {
       name: "reverse",
       type: "boolean",
