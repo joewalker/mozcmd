@@ -1,7 +1,7 @@
 // GCLI Browser Scratchpad
 // via https://bugzilla.mozilla.org/show_bug.cgi?id=724055#c7
 
-// gBrowser.ownerDocument.defaultView
+// gBrowser.ownerDocument.defaultView.Scratchpad.openScratchpad()
 
 Cu.import("resource:///modules/devtools/gcli.jsm");
 gcli.addCommand({
@@ -18,13 +18,35 @@ gcli.addCommand({
   }
 });
 
-
+gcli.addCommand({
+  name: "scratchpad file",
+  description: "Open a Scratchpad from a file",
   params: [
     {
-      name: "file",
+      name: "filename",
       type: "string",
-      description: "filename of scratchpad file to open"
-    },
+      description: "filename of scratchpad file to open",
+      defaultValue: ""
+    }
+  ],
+  exec: function(args, context) {
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    let console = context.environment.contentDocument.defaultView.console;
+    let spw = chromeWin.Scratchpad.openScratchpad();
+    spw.addEventListener("load", function sploaded() {
+      spw.removeEventListener("load", sploaded, false);
+      if (args.filename) {
+        let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+        file.initWithPath(args.filename);
+        spw.window.Scratchpad.importFromFile(file);
+      } else {
+        // XXX fix this!
+        spw.setTimeout(200, spw.window.Scratchpad.openFile);
+      }
+    }, false);
+  }
+});
+
     {
       name: "url",
       type: "string",
