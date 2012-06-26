@@ -2,8 +2,8 @@
 * Sort Tabs command
 *
 * @param number url_part
-*        a matching string to match the url of tabs.
-*        if this value is provided, the tabs not matching the criteria would not be shifted.
+* a matching string to match the url of tabs.
+* if this value is provided, the tabs not matching the criteria would not be shifted.
 */
 
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
@@ -16,6 +16,12 @@ gcli.addCommand({
       type: "string",
       defaultValue: "",
       description: "Sorts tabs that contain this url part."
+    }
+    {
+      name: "reverse",
+      type: "boolean",
+      defaultValue: false,
+      description: "True to reverse the sorting direction."
     }
   ],
   returnType: "null",
@@ -42,7 +48,7 @@ gcli.addCommand({
       let urlB = gBrowser.getBrowserForTab(b).currentURI.spec;
       urlA = urlA.replace(/^http(s)?:\/\/(www\.)?/, "");
       urlB = urlB.replace(/^http(s)?:\/\/(www\.)?/, "");
-      return urlA > urlB;
+      return (args.reverse? urlA < urlB: urlA > urlB);
     });
     visibleTabs.forEach(function (tab, index) {
       gBrowser.moveTabTo(tab, visibleTabIndex[index]);
