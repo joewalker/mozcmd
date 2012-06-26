@@ -2,9 +2,9 @@
  *  date command
  *
  *  Usage: 
- *    date                            // 2012-01-31 13:37:00
+ *    date                            // Tue 31 Jan 2012 13:37:00 PM CET
  *    date %H:%M:%S %m-%d-%Y          // 13:37:00 01-31-2012
- *    date unix                       // 1340735625334
+ *    date stamp                      // 1340735625334
  */
 gcli.addCommand(
   {
@@ -15,12 +15,12 @@ gcli.addCommand(
         name: 'format',
         type: { name: 'array', subtype: 'string' },
         description: 'The format of the date',
-        defaultValue: '%Y-%m-%d %H:%M:%S'
+        defaultValue: '%c'
       }
     ],
     exec: function(args, context) {
       let format = args.format.join ? args.format.join(' ') : args.format;
-      return format === 'unix' ? Date.now() : new Date().toLocaleFormat(format);
+      return format === 'stamp' ? Date.now() : new Date().toLocaleFormat(format);
     }
   }
 );
