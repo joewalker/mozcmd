@@ -1,0 +1,88 @@
+[{
+  name: "calllog",
+  description: "Commands to manipulate function call logging"
+}, {
+  name: "calllog start",
+  description: "Start logging function calls to the console",
+  params: [
+    {
+      name: "uri",
+      type: "string",
+      description: "URI of JSM to start logging function calls",
+    }
+  ],
+  exec: function(args, context) {
+    let globalObj;
+    try {
+      globalObj = Components.utils.import(args.uri);
+    }
+    catch (e) {
+      return "Invalid JSM!";
+    }
+
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    if (typeof chromeWin.Debugger == "undefined") {
+      let JSDebug = {};
+      Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
+      JSDebug.addDebuggerToGlobal(chromeWin);
+    }
+
+    let tm = Components.classes["@mozilla.org/thread-manager;1"]
+                       .getService(Components.interfaces.nsIThreadManager);
+    tm.mainThread.dispatch({
+      run: function() {
+
+        function dvToString(v) {
+          if (typeof v !== "object" || v === null)
+            return uneval(v);
+          return "[object " + v.class + "]";
+        }
+
+        function framePosition(f) {
+          if (!f.script)
+            return f.type + " code";
+          return (f.script.url || f.type + " code") + ":" + f.script.getOffsetLine(f.offset);
+        }
+
+        function callDescription(f) {
+          return ((f.callee.name || "<anonymous>") + "(" + f.arguments.map(dvToString).join(", ") + ")");
+        }
+
+        function onEnterFrame(f) {
+          try {
+            let msg = Components.classes["@mozilla.org/scripterror;1"]
+                                .createInstance(Components.interfaces.nsIScriptError);
+            msg.init("Method call: " + callDescription(f),
+                     f.script ? f.script.url : (f.type + " code"),
+                     "",
+                     f.script.getOffsetLine(f.offset),
+                     0,
+                     Components.interfaces.nsIScriptError.warningFlag,
+                     "component javascript");
+            Services.console.logMessage(msg);
+          } catch(e) {}
+        }
+
+        let dbg = new chromeWin.Debugger(globalObj);
+        if (!Array.isArray(chromeWin.__jsmDebuggers))
+          chromeWin.__jsmDebuggers = [];
+        chromeWin.__jsmDebuggers.push(dbg);
+        dbg.onEnterFrame = onEnterFrame;
+      }
+    }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+    return "Call logging started for " + args.uri;
+  }
+}, {
+  name: "calllog stop",
+  description: "Stop all function call logging",
+  exec: function(args, context) {
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    if (!Array.isArray(chromeWin.__jsmDebuggers) || chromeWin.__jsmDebuggers.length == 0)
+      return "No JSMs have call logging enabled";
+    let numDebuggers = chromeWin.__jsmDebuggers.length;
+    for (let dbg of chromeWin.__jsmDebuggers)
+      dbg.onEnterFrame = undefined;
+    chromeWin.__jsmDebuggers = [];
+    return "Stopped call logging for " + numDebuggers + " contexts";
+  }
+}]
