@@ -1,0 +1,17 @@
+[
+  {
+    name: 'basename',
+    description: 'Return the filename portion of a path',
+    params: [
+      {
+        name: 'path',
+        type: 'string',
+        description: 'The path of the resource'
+      }
+    ],
+    returnType: 'string',
+    exec: function(args, context) {
+      return args.path.split('/').pop();
+    }
+  }
+]
