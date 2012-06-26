@@ -9,7 +9,7 @@ gcli.addCommand(
       {
         name: 'format',
         type: 'string',
-        description: 'The format of the date',
+        description: 'The format of the date (like c strftime)',
         defaultValue: '%Y-%m-%d %H:%M:%S'
       }
     ],
