@@ -7,7 +7,7 @@ gcli.addCommand({
     {
       name: 'search',
       type: 'string',
-      description: 'What to look for',
+      description: 'The text to search for',
     }
   ],
   exec: function(args, context) {
@@ -23,7 +23,7 @@ gcli.addCommand({
 
 gcli.addCommand({
   name: 'findnext',
-  description: 'Find next occurrence of previously searched for text',
+  description: 'Find next occurrence of the text previously searched for',
   exec: function(args, context) {
     let browser = context.environment.chromeDocument.defaultView.gBrowser;
     if (typeof browser.__cliFastFind == 'undefined')
@@ -34,7 +34,7 @@ gcli.addCommand({
 
 gcli.addCommand({
   name: 'findprev',
-  description: 'Find previous occurrence of previously searched for text',
+  description: 'Find previous occurrence of the text previously searched for',
   exec: function(args, context) {
     let browser = context.environment.chromeDocument.defaultView.gBrowser;
     if (typeof browser.__cliFastFind == 'undefined')
