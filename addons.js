@@ -1,5 +1,5 @@
 /**
- * Any copyright by past is dedicated to the Public Domain. http://creativecommons.org/publicdomain/zero/1.0/
+ * Any copyright by Panagiotis Astithas is dedicated to the Public Domain. http://creativecommons.org/publicdomain/zero/1.0/
  *
  * Otherwise, copyright 2012 Pimm Hogeling
  * You can redistribute and/or modify this software under the terms of the Mozilla Public License Version 1.1, the
@@ -29,18 +29,24 @@ var addonListCommandSpec = {
   exec: function(args, context) {
     let promise = context.createPromise();
     AddonManager.getAddonsByTypes(["extension"], function (addons) {
-      let map = {};
-      addons.forEach(function(e) { map[e.name] = e; });
-      let reply = 'The following Add-ons were found:';
-      reply += '<ol>';
-      let names = Object.keys(map).sort();
-      for (let i of names) {
-        let a = map[i];
-        if (a.userDisabled) {
-          reply += '<li style="text-decoration: line-through;"><![CDATA[' + i + ']]></li>';
+      let enabledMap = {};
+      let disabledMap = {};
+      addons.forEach(function(e) {
+        if (e.userDisabled) {
+          disabledMap[e.name] = e;
         } else {
-          reply += '<li><![CDATA[' + i + ']]></li>';
+          enabledMap[e.name] = e;
         }
+      });
+      let reply = 'The following Add-ons are installed:';
+      reply += '<ol>';
+      let names = Object.keys(enabledMap).sort(String.localeCompare);
+      for (let i of names) {
+        reply += '<li><![CDATA[' + i + ']]></li>';
+      }
+      let names = Object.keys(disabledMap).sort(String.localeCompare);
+      for (let i of names) {
+        reply += '<li style="color: #888; text-decoration: line-through;"><![CDATA[' + i + ']]></li>';
       }
       reply += '</ol>';
       promise.resolve(reply);
@@ -79,9 +85,9 @@ var addonEnableCommandSpec = {
       }
       if (addon) {
         addon.userDisabled = false;
-        result = args.name + ' was enabled';
+        result = addon.name + ' was enabled';
       } else {
-        result = args.name + ' was not found';
+        result = addon.name + ' was not found';
       }
       promise.resolve(result);
     });
@@ -110,9 +116,9 @@ var addonDisableCommandSpec = {
       }
       if (addon) {
         addon.userDisabled = true;
-        result = args.name + ' was disabled';
+        result = addon.name + ' was disabled';
       } else {
-        result = args.name + ' was not found';
+        result = addon.name + ' was not found';
       }
       promise.resolve(result);
     });
