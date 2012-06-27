@@ -121,8 +121,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modul
   }
   (function() {
     /**
-     * Enables the addon in the passed list which has a name that matches the passed name comparer, and resolves the promise
-     * which is the scope (this) of this function to display the result of this enable attempt.
+     * Enables the addon in the passed list which has a name that matches according to the passed name comparer, and resolves
+     * the promise which is the scope (this) of this function to display the result of this enable attempt.
      */
     function enable(nameComparer, addons) {
       // Find the add-on. TODO consider adding something that checks for multiple matches. Currently, if the user's input
@@ -361,8 +361,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modul
     gcli.addCommand({
       name: "addon install",
       description: {
-        "root": "Find and install the specified add-on",
-        "nl-nl": "Zoek en installeer de gespecificeerde add-on"
+        "root": "Install the specified add-on from addons.mozilla.org",
+        "nl-nl": "Installeer de gespecificeerde add-on vanaf addons.mozilla.org"
       },
       params: [nameParameter, forceParameter],
       exec: function(cliArguments, context) {
@@ -383,6 +383,50 @@ XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository", "resource://gre/modul
         // promise.setProgress("<![CDATA[Searching for " + cliArguments[nameParameter.name] + "&hellip;]]>");
         // Search for the add-on.
         AddonRepository.searchAddons(cliArguments[nameParameter.name], 4, new AddonSearchCallback(promise, cliArguments[nameParameter.name]));
+        return promise;
+      }
+    });
+  })();
+  (function() {
+    /**
+     * Uninstalls the addon in the passed list which has a name that matches according to the passed name comparer, and
+     * resolves the promise which is the scope (this) of this function to display the result of this uninstall attempt.
+     */
+    function uninstall(nameComparer, addons) {
+      // Find the add-on. TODO consider adding something that checks for multiple matches.
+      let addon = null;
+      addons.some(function(candidate) {
+        if (nameComparer.compare(candidate.name)) {
+          addon = candidate;
+          return true;
+        } else {
+          return false;
+        }
+      });
+      // Uninstall the add-on, if it was found. Explain the user what happened.
+      if (null == addon) {
+        // nl-nl: De add-on is niet gevonden.
+        this.resolve("This add-on was not found.");
+      } else {
+        addon.uninstall();
+        // TODO Determine whether the add-on needs a restart. Inform the user of this fact if so.
+        // nl-nl: {$1} is gedeinstalleerd.
+        this.resolve("<![CDATA[" + representAddon(addon) + " has been uninstalled.]]>");
+      }
+    }
+    // Add "addon uninstall".
+    gcli.addCommand({
+      name: "addon uninstall",
+      description: {
+        "root": "Uninstall the specified add-on",
+        "nl-nl": "Deinstalleer de gespecificeerde add-on"
+      },
+      params: [nameParameter],
+      exec: function(cliArguments, context) {
+        // Create the promise that will be resolved when the uninstalling has been finished.
+        let promise = context.createPromise();
+        // List the installed add-ons, uninstall one when done listing.
+        AddonManager.getAddonsByTypes(["extension"], uninstall.bind(promise, new NameComparer(cliArguments[nameParameter.name])));
         return promise;
       }
     });
