@@ -8,7 +8,7 @@ gcli.addCommand({
     {
       name: 'file',
       type: 'string',
-      description: 'Path to script to load'
+      description: 'URL to script to load'
     }
   ],
   exec: function(args, context) {
