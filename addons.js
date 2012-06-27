@@ -156,11 +156,10 @@ var addonInstallCommandSpec = (function() {
       let addonName = convertToSimplifiedLowerCase(addon.name);
       if (addonName.substr(0, this.inputtedName.length) == this.inputtedName) {
         // Inform the user the add-on was found.
-        // nl-nl: Bezig met installeren van {$1}...
-        // promise.setProgress("<![CDATA[Installing " + addon.name + " " + addon.version + "&hellip;]]>");
-        
-        // TODO: Use addon.install and actually install the add-on.
-        
+        // nl-nl: Bezig met downloaden van {$1}...
+        // promise.setProgress("<![CDATA[Downloading " + addon.name + " " + addon.version + "&hellip;]]>");
+        addon.install.addListener(new AddonInstallListener(this.promise));
+        addon.install.install();
         return;
       }
     }
@@ -172,6 +171,91 @@ var addonInstallCommandSpec = (function() {
     // nl-nl: Kan niet installeren. Zoekopdracht mislukt. Misschien kon er geen verbinding worden gemaakt met het add-on magazijn.
     this.promise.resolve("Unable to install. Search failed. Perhaps no connection to the add-on repository could be made.");
   }
+  // Define the listener that will be used when an add-on is being installed.
+  const AddonInstallListener = function(promise) {
+    this.promise = promise;
+  };
+  const nop = function() {
+  };
+  AddonInstallListener.prototype = {
+    /**
+     * Called when a new instance of AddonInstall is created, primarily so UI can display some kind of progress for all
+     * installs.
+     */
+    onNewInstall: nop,
+    /**
+     * Called when downloading begins for an add-on install. Only called for add-ons that need to be downloaded. A listener may
+     * return false to cancel the download.
+     */
+    onDownloadStarted: nop,
+    /**
+     * Called as data is received during a download. Check the AddonInstall.progress property for the amount of data downloaded
+     * and the AddonInstall.maxProgress property for the total data expected. A listener may return false to cancel the
+     * download.
+     */
+    onDownloadProgress: function(install) {
+      // Show the how much of the add-on has been downloaded. TODO Perhaps make this a percentage.
+      // nl-nl: Download op {$1}.
+      // this.promise.setProgress("Download at " + (install.progress / install.maxProgress) + ".");
+    },
+    /**
+     * Called when downloading completes successfully for an add-on install. Only called for add-ons that need to be
+     * downloaded.
+     */
+    onDownloadEnded: function() {
+      // nl-nl: Klaar met downloaden.
+      //this.promise.setProgress("Download completed.");
+    },
+    /**
+     * Called when downloading is cancelled. Only called for add-ons that need to be downloaded.
+     */
+    onDownloadCancelled: function() {
+      // nl-nl: Download geannuleerd.
+      //this.promise.setProgress("Download cancelled.");
+    },
+    /**
+     * Called if there is some error downloading the add-on. Only called for add-ons that need to be downloaded.
+     */
+    onDownloadFailed: function() {
+      // nl-nl: Download mislukt.
+      //this.promise.setProgress("Download failed.");
+    },
+    /**
+     * Called when installation of an add-on begins. A listener may return false to cancel the install.
+     */
+    onInstallStarted: function() {
+      // nl-nl: Bezig met installeren van {$1}...
+      // promise.setProgress("<![CDATA[Installing " + addon.name + " " + addon.version + "&hellip;]]>");
+    },
+    /**
+     * Called when installation of an add-on is complete. The newly installed add-on may require a restart in order to become
+     * active.
+     */
+    onInstallEnded: function(install, addon) {
+      // The add-on was successfully installed. Love!
+      // nl-nl {$1} is succesvol geinstalleerd.
+      this.promise.resolve(addon.name + " " + addon.version + " has been successfully installed.");
+      // TODO Determine whether the add-on needs a restart. Inform the user of this fact if so.
+    },
+    /**
+     * Called when installation is cancelled.
+     */
+    onInstallCancelled: function() {
+      // nl-nl: Installatie geannuleerd.
+      //this.promise.setProgress("Installation cancelled.");
+    },
+    /**
+     * Called when there is a failure installing the add-on.
+     */
+    onInstallFailed: function() {
+      // nl-nl: Installatie mislukt.
+      //this.promise.setProgress("Installation failed.");
+    },
+    /**
+     * Called when an add-on is installed through some system other than an AddonInstall.
+     */
+    onExternalInstall: nop
+  };
   const forceParameter = {
     name: "force",
     type: "boolean",
