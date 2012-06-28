@@ -1,0 +1,90 @@
+[{
+  name: "hotfunction",
+  description: "Records function calls and figures out which functions are 'hot'.",
+  params: [{
+    name: "action",
+    description: "Action to take - start recording, or stop",
+    type: {
+      name: "selection",
+      data: ["start", "stop"]
+    }
+  }],
+  dbg: null,
+  frames: {},
+  exec: function(args, context) {
+    let chromeWin = context.environment.chromeDocument.defaultView;
+    let contentWin = context.environment.contentDocument.defaultView;
+
+    if (Debugger == "undefined") {
+      let JSDebug = {};
+      Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
+      JSDebug.addDebuggerToGlobal(Components.utils.getGlobalForObject(this));
+    }
+
+    if (args.action == "start") {
+      if (this.dbg)
+        return "Error: Already recording.";
+
+      this.dbg = new Debugger(contentWin);
+      this.dbg.onEnterFrame = this.onEnterFrame.bind(this);
+
+      return "Started recording. Run 'hotfunction stop' to stop recording and see results."
+    } else {
+      if (!this.dbg)
+        return "Error: Not currently recording.";
+
+      this.dbg.onEnterFrame = undefined;
+      this.dbg = null;
+
+      let ids = Object.keys(this.frames);
+      if (ids.length == 0)
+        return "Error: No function calls recorded.";
+
+      let orderedFrames = [];
+      for (let id of ids)
+        orderedFrames.push(this.frames[id]);
+      orderedFrames.sort(function(a,b) b.count - a.count);
+
+      let output = "<h1>Top hot functions:</h1><br/>";
+      let maxFrames = 10;
+      if (maxFrames > orderedFrames.length)
+        maxFrames = orderedFrames.length;
+
+      for (let i = 0; i < maxFrames; i++) {
+        let frame = orderedFrames[i];
+        output += frame.functionName + "  (" + frame.count + " calls) " +
+                  frame.scriptURL + ":" + frame.line + "<br/>";
+      }
+      return output;
+    }
+  },
+  onEnterFrame: function(aFrame) {
+    try {
+      if (!aFrame.script) {
+        if (!("__unknown__" in this.frames))
+          this.frames.__unknown__ = 0;
+        this.frames.__unknown__++;
+        return;
+      }
+  
+      let functionName = "[anonymous]";
+      if (aFrame.callee && aFrame.callee.name)
+        functionName = aFrame.callee.name;
+      let id = aFrame.script.url + ":" +
+                 aFrame.script.getOffsetLine(aFrame.offset) + ":" +
+                 functionName;
+      if (!(id in this.frames)) {
+        let frameInfo = {
+          scriptURL: aFrame.script.url,
+          line: aFrame.script.getOffsetLine(aFrame.offset),
+          functionName: functionName,
+          count: 0
+        };
+        this.frames[id] = frameInfo;
+      }
+      this.frames[id].count++;
+    } catch(e) {
+      Components.utils.reportError(e);
+    }
+  }
+}]
