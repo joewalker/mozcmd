@@ -1,0 +1,98 @@
+{
+  name: 'find',
+  description: 'Go to a tab (fuzzy matched)',
+  params: [
+    {
+      name: 'tabName',
+      type: 'string',
+      description: 'Fuzzy matching of a tab name',
+    }
+  ],
+  returnType: "string",
+  exec: function (args, context) {
+    let gBrowser = context.environment.chromeDocument.defaultView.gBrowser;
+
+    // Get all the URIS and titles.
+    let tablen = gBrowser.tabs.length;
+    let tabNames = new Array(tablen);
+    let tab;
+    for (let i = 0; i < tablen; i++) {
+      tab = gBrowser.tabs[i];
+      tabNames[i] = gBrowser.getBrowserForTab(tab).currentURI.spec + ' '
+        gBrowser.getBrowserForTab(tab).contentTitle;
+    }
+
+    // All the fuzzy matching primitives are pasted in here.
+
+    var leafs = [];
+
+    function sorter (file1, file2) { return file2[1] - file1[1]; };
+
+    // Return [leaf, stars, indexes]:
+    //
+    // - `leaf` is a String of the path.
+    // - `stars` is a Number to compare leafs according to the query.
+    // - `indexes` is the positions of matched letters.
+    //
+    // `leaf` is a String of the path from here to the leaf.
+    // `query` is a String to fuzzy match.
+    function score(leaf, query) {
+      var stars = 0,
+          index = query.length - 1,
+          indexes = [],             // Position of matched letters.
+          countlettersmatched = 0,  // Consecutive letters matched.
+          alpha = /[a-zA-Z0-9]/,
+          lookingAhead = false;     // Grant one last run and terminate.
+      // The idea is to begin with the end of the `query`, and for each letter
+      // matched, the letter is captured, its position influences the score, and we
+      // go to the next letter.
+      for (var i = leaf.length - 1; i >= 0; i--) {
+        var l = leaf[i];  // letter
+
+        if (countlettersmatched > 0 && !alpha.test(l)) {
+          stars += 2;   // first letter after non-alphanumeric character is good.
+        }
+
+        if (l === query[index]) {
+          indexes.push(i);
+          stars++;      // match!
+          stars += countlettersmatched;     // Consecutive matches is good.
+
+          countlettersmatched++;
+          index--;
+        } else {
+          countlettersmatched = 0;
+        }
+        if (lookingAhead)  break;       // The last run was already granted.
+        else if (index < 0)  lookingAhead = true;   // Grant last run now.
+      }
+      if (lookingAhead)  stars++;
+      return [leaf, stars, indexes];
+    }
+
+    // List of [leafpath, stars, indexes], ordered by the stars.
+    // Leafs that do not match the whole query are discarded.
+    //
+    // `leafs` is an Array of Strings of paths from here to the leaf.
+    // `query` is a String to fuzzy match.
+    function fuzzy (leafs, query) {
+      var fuzzied = [];
+      for (var i = 0; i < leafs.length; i++) {
+        var sc = score(leafs[i], query);
+        if (sc[2].length === query.length) {
+          fuzzied.push(sc);
+        }
+      }
+      return fuzzied.sort(sorter);
+    }
+
+    // Fuzzy match those titles.
+    let fuzznames = fuzzy(tabNames, args.tabName);
+
+    if (fuzznames.length > 0) {
+      gBrowser.selectedTab = gBrowser.tabs[tabNames.indexOf(fuzznames[0][0])];
+    } else {
+      return "No tab was found.";
+    }
+  }
+}
