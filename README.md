@@ -1,16 +1,10 @@
-jsb
-===
 
-This is a JavaScript beautifier command for Mozilla's GCLI.
+These are the commands created during the Firefox Command Line Hackathon
 
-The JS Beautifier algorithm was written by Einar Lielmanis, who says this about it:
+Zero testing has been done on these commands. This is a frankenrepo containing
+a mostly blind merge of the submitted gists and pull requests of this repo.
+So we've not done a security audit, checked licenses or even run the commands,
+just collated what was sent our way.
 
-----
-  Written by Einar Lielmanis, <einar@jsbeautifier.org>
-      http://jsbeautifier.org/
-
-  Originally converted to javascript by Vital, <vital76@gmail.com>
-  "End braces on own line" added by Chris J. Shull, <chrisjshull@gmail.com>
-
-  You are free to use this in any way you want, in case you find this useful or working for you.
-----
+For a summary of the day and the commands, see:
+  http://incompleteness.me/blog/2012/06/27/hackathon-summary/
