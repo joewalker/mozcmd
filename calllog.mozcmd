@@ -2,18 +2,23 @@
   name: "calllog",
   description: "Commands to manipulate function call logging"
 }, {
-  name: "calllog start",
+  name: "calllog record",
   description: "Start logging function calls to the console",
-  params: [
-    {
+  params: [{
       name: "source",
       type: "string",
       description: "Variable name in content window to get global object, or URI of JSM",
-    }
-  ],
+  }],
   exec: function(args, context) {
-    let chromeWin = context.environment.chromeDocument.defaultView;
-    let contentWin = context.environment.contentDocument.defaultView;
+    let global = Components.utils.getGlobalForObject(this);
+
+    if (typeof global.Debugger == "undefined") {
+      let JSDebug = {};
+      Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
+      JSDebug.addDebuggerToGlobal(global);
+    }
+    let Debugger = global.Debugger;
+
     let globalObj;
     if (args.source.indexOf("resource:") == 0) {
       try {
@@ -23,6 +28,7 @@
         return "Invalid JSM!";
       }
     } else {
+      let contentWin = context.environment.contentDocument.defaultView;
       if (args.source in contentWin) {
         globalObj = Components.utils.getGlobalForObject(contentWin[args.source]);
       } else {
@@ -30,69 +36,60 @@
       }
     }
 
+    let dbg = new Debugger(globalObj);
+    if (!Array.isArray(global.callLogDebuggers))
+      global.callLogDebuggers = [];
+    global.callLogDebuggers.push(dbg);
+    dbg.onEnterFrame = this.onEnterFrame.bind(this);
 
-    if (typeof chromeWin.Debugger == "undefined") {
-      let JSDebug = {};
-      Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
-      JSDebug.addDebuggerToGlobal(chromeWin);
-    }
-
-    let tm = Components.classes["@mozilla.org/thread-manager;1"]
-                       .getService(Components.interfaces.nsIThreadManager);
-    tm.mainThread.dispatch({
-      run: function() {
-
-        function dvToString(v) {
-          if (typeof v !== "object" || v === null)
-            return uneval(v);
-          return "[object " + v.class + "]";
-        }
-
-        function framePosition(f) {
-          if (!f.script)
-            return f.type + " code";
-          return (f.script.url || f.type + " code") + ":" + f.script.getOffsetLine(f.offset);
-        }
-
-        function callDescription(f) {
-          return ((f.callee.name || "<anonymous>") + "(" + f.arguments.map(dvToString).join(", ") + ")");
-        }
-
-        function onEnterFrame(f) {
-          try {
-            let msg = Components.classes["@mozilla.org/scripterror;1"]
-                                .createInstance(Components.interfaces.nsIScriptError);
-            msg.init("Method call: " + callDescription(f),
-                     f.script ? f.script.url : (f.type + " code"),
-                     "",
-                     f.script.getOffsetLine(f.offset),
-                     0,
-                     Components.interfaces.nsIScriptError.warningFlag,
-                     "component javascript");
-            Services.console.logMessage(msg);
-          } catch(e) {}
-        }
-
-        let dbg = new chromeWin.Debugger(globalObj);
-        if (!Array.isArray(chromeWin.__jsmDebuggers))
-          chromeWin.__jsmDebuggers = [];
-        chromeWin.__jsmDebuggers.push(dbg);
-        dbg.onEnterFrame = onEnterFrame;
-      }
-    }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
     return "Call logging started for " + args.source;
+  },
+  valueToString: function(value) {
+    if (typeof value !== "object" || value === null)
+      return uneval(value);
+    return "[object " + value.class + "]";
+  },
+  framePosition: function(frame) {
+    if (!frame.script)
+      return frame.type + " code";
+    let line = frame.script.getOffsetLine(frame.offset);
+    let source = frame.script.url || (frame.type + " code");
+    return source + ":" + line;
+  },
+  callDescription: function(frame) {
+    let name = frame.callee.name || "<anonymous>";
+    let args = frame.arguments.map(this.valueToString).join(", ");
+    return name + "(" + args + ")";
+  },
+  onEnterFrame: function(frame) {
+    try {
+      let msg = Components.classes["@mozilla.org/scripterror;1"]
+                          .createInstance(Components.interfaces.nsIScriptError);
+      msg.init("Method call: " + this.callDescription(frame),
+               frame.script ? frame.script.url : (frame.type + " code"),
+               "",
+               frame.script.getOffsetLine(frame.offset),
+               0,
+               Components.interfaces.nsIScriptError.warningFlag,
+               "component javascript");
+      Services.console.logMessage(msg);
+    } catch(e) {}
   }
 }, {
   name: "calllog stop",
-  description: "Stop all function call logging",
+  description: "Stop function call logging",
   exec: function(args, context) {
-    let chromeWin = context.environment.chromeDocument.defaultView;
-    if (!Array.isArray(chromeWin.__jsmDebuggers) || chromeWin.__jsmDebuggers.length == 0)
+    let global = Components.utils.getGlobalForObject(this);
+
+    let numDebuggers = 0
+    if (Array.isArray(global.callLogDebuggers))
+      numDebuggers = global.callLogDebuggers.length;
+    if (numDebuggers == 0)
       return "No call logging is currently active";
-    let numDebuggers = chromeWin.__jsmDebuggers.length;
-    for (let dbg of chromeWin.__jsmDebuggers)
+    for (let dbg of global.callLogDebuggers)
       dbg.onEnterFrame = undefined;
-    chromeWin.__jsmDebuggers = [];
+    global.callLogDebuggers = [];
+
     return "Stopped call logging for " + numDebuggers + " contexts";
   }
 }]
