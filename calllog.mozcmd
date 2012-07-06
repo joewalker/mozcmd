@@ -4,11 +4,6 @@
 }, {
   name: "calllog record",
   description: "Start logging function calls to the console",
-  params: [{
-      name: "source",
-      type: "string",
-      description: "Variable name in content window to get global object, or URI of JSM",
-  }],
   exec: function(args, context) {
     let global = Components.utils.getGlobalForObject(this);
 
@@ -19,30 +14,15 @@
     }
     let Debugger = global.Debugger;
 
-    let globalObj;
-    if (args.source.indexOf("resource:") == 0) {
-      try {
-        globalObj = Components.utils.import(args.source);
-      }
-      catch (e) {
-        return "Invalid JSM!";
-      }
-    } else {
-      let contentWin = context.environment.contentDocument.defaultView;
-      if (args.source in contentWin) {
-        globalObj = Components.utils.getGlobalForObject(contentWin[args.source]);
-      } else {
-        return "Object name not found in content window";
-      }
-    }
+    let contentWin = context.environment.contentDocument.defaultView;
 
-    let dbg = new Debugger(globalObj);
+    let dbg = new Debugger(contentWin);
     if (!Array.isArray(global.callLogDebuggers))
       global.callLogDebuggers = [];
     global.callLogDebuggers.push(dbg);
     dbg.onEnterFrame = this.onEnterFrame.bind(this);
 
-    return "Call logging started for " + args.source;
+    return "Call logging started.";
   },
   valueToString: function(value) {
     if (typeof value !== "object" || value === null)
