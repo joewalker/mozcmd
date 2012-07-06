@@ -1,0 +1,124 @@
+[{
+  name: "calllog",
+  description: "Commands to manipulate function call logging"
+}, {
+  name: "calllog chrome-record",
+  description: "Start logging function calls for chrome code to the console",
+  params: [{
+      name: "sourceType",
+      type: {
+        name: "selection",
+        data: ["content-variable", "chrome-variable", "jsm", "javascript"]
+      }
+    }, {
+      name: "source",
+      type: "string",
+      description: "Variable name in content/chrome window to get global object, URI of a JSM, or JS to execute in the chrome window to get a global object",
+  }],
+  exec: function(args, context) {
+    let global = Components.utils.getGlobalForObject(this);
+
+    if (typeof global.Debugger == "undefined") {
+      let JSDebug = {};
+      Components.utils.import("resource://gre/modules/jsdebugger.jsm", JSDebug);
+      JSDebug.addDebuggerToGlobal(global);
+    }
+    let Debugger = global.Debugger;
+
+    let globalObj;
+
+    if (args.sourceType == "jsm") {
+      try {
+        globalObj = Components.utils.import(args.source);
+      }
+      catch (e) {
+        return "Invalid JSM!";
+      }
+    } else if (args.sourceType == "content-variable") {
+      let contentWin = context.environment.contentDocument.defaultView;
+      if (args.source in contentWin) {
+        globalObj = Components.utils.getGlobalForObject(contentWin[args.source]);
+      } else {
+        return "Variable not found in content window.";
+      }
+    } else if (args.sourceType == "chrome-variable") {
+      let chromeWin = context.environment.chromeDocument.defaultView;
+      if (args.source in chromeWin) {
+        globalObj = Components.utils.getGlobalForObject(chromeWin[args.source]);
+      } else {
+        return "Variable not found in chrome window.";
+      }
+    } else {
+      let chromeWin = context.environment.chromeDocument.defaultView;
+      let sandbox = new Components.utils.Sandbox(chromeWin,
+                                                 {sandboxPrototype: chromeWin,
+                                                  wantXrays: false, 
+                                                  sandboxName: "gcli-cmd-calllog-chrome"});
+      let returnVal;
+      try {
+        returnVal = Components.utils.evalInSandbox(args.source, sandbox, "ECMAv5");
+      } catch(e) {
+        return "Evaluated javascript threw the following exception: " + e;
+      }
+      // XXXunf Needs bug 769273
+      // Components.utils.nukeSandbox(sandbox);
+      globalObj = Components.utils.getGlobalForObject(returnVal);
+    }
+
+    let dbg = new Debugger(globalObj);
+    if (!Array.isArray(global.callLogDebuggers))
+      global.callLogDebuggers = [];
+    global.callLogDebuggers.push(dbg);
+    dbg.onEnterFrame = this.onEnterFrame.bind(this);
+
+    return "Call logging started.";
+  },
+  valueToString: function(value) {
+    if (typeof value !== "object" || value === null)
+      return uneval(value);
+    return "[object " + value.class + "]";
+  },
+  framePosition: function(frame) {
+    if (!frame.script)
+      return frame.type + " code";
+    let line = frame.script.getOffsetLine(frame.offset);
+    let source = frame.script.url || (frame.type + " code");
+    return source + ":" + line;
+  },
+  callDescription: function(frame) {
+    let name = frame.callee.name || "<anonymous>";
+    let args = frame.arguments.map(this.valueToString).join(", ");
+    return name + "(" + args + ")";
+  },
+  onEnterFrame: function(frame) {
+    try {
+      let msg = Components.classes["@mozilla.org/scripterror;1"]
+                          .createInstance(Components.interfaces.nsIScriptError);
+      msg.init("Method call: " + this.callDescription(frame),
+               frame.script ? frame.script.url : (frame.type + " code"),
+               "",
+               frame.script.getOffsetLine(frame.offset),
+               0,
+               Components.interfaces.nsIScriptError.warningFlag,
+               "component javascript");
+      Services.console.logMessage(msg);
+    } catch(e) {}
+  }
+}, {
+  name: "calllog stop",
+  description: "Stop all function call logging",
+  exec: function(args, context) {
+    let global = Components.utils.getGlobalForObject(this);
+
+    let numDebuggers = 0
+    if (Array.isArray(global.callLogDebuggers))
+      numDebuggers = global.callLogDebuggers.length;
+    if (numDebuggers == 0)
+      return "No call logging for chrome code is currently active";
+    for (let dbg of global.callLogDebuggers)
+      dbg.onEnterFrame = undefined;
+    global.callLogDebuggers = [];
+
+    return "Stopped call logging for " + numDebuggers + " contexts";
+  }
+}]
